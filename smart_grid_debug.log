@@ -3370,3 +3370,209 @@ django.db.utils.OperationalError: no such table: django_session
 2025-04-08 15:05:41,983 - asyncio - DEBUG - Using proactor: IocpProactor
 2025-04-08 15:05:56,678 - households.views - INFO - Successfully established robust MongoDB connection
 2025-04-08 15:06:09,904 - trading.views - INFO - Successfully connected to MongoDB
+2025-04-08 15:20:41,780 - households.views - INFO - Successfully established robust MongoDB connection
+2025-04-08 15:20:43,128 - trading.views - INFO - Successfully connected to MongoDB
+2025-04-08 15:20:45,283 - django.request - WARNING - Not Found: /favicon.ico
+2025-04-15 09:16:40,998 - households.views - CRITICAL - Critical MongoDB Connection Failure: The resolution lifetime expired after 17.005 seconds: Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.
+Traceback (most recent call last):
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 72, in _resolve_uri
+    results = resolver.query('_mongodb._tcp.' + self.__fqdn, 'SRV',
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1597, in query
+    return resolve(
+           ^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1564, in resolve
+    return get_default_resolver().resolve(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1320, in resolve
+    timeout = self._compute_timeout(start, lifetime, resolution.errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1076, in _compute_timeout
+    raise LifetimeTimeout(timeout=duration, errors=errors)
+dns.resolver.LifetimeTimeout: The resolution lifetime expired after 17.005 seconds: Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Sem 8\DA Lab\energy_trading_game\households\views.py", line 50, in _connect
+    self.client = MongoClient(**connection_params)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\mongo_client.py", line 639, in __init__
+    res = uri_parser.parse_uri(
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\uri_parser.py", line 500, in parse_uri
+    nodes = dns_resolver.get_hosts()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 102, in get_hosts
+    _, nodes = self._get_srv_response_and_hosts(True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 83, in _get_srv_response_and_hosts
+    results = self._resolve_uri(encapsulate_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 79, in _resolve_uri
+    raise ConfigurationError(str(exc))
+pymongo.errors.ConfigurationError: The resolution lifetime expired after 17.005 seconds: Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.; Server Do53:192.168.39.177@53 answered The DNS operation timed out.
+2025-04-15 09:17:00,869 - households.views - INFO - Successfully established robust MongoDB connection
+2025-04-15 09:17:02,682 - trading.views - INFO - Successfully connected to MongoDB
+2025-04-15 09:17:26,120 - django.request - WARNING - Not Found: /favicon.ico
+2025-04-15 09:24:20,599 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-04-15 14:05:44,381 - households.views - CRITICAL - Critical MongoDB Connection Failure: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+Traceback (most recent call last):
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 72, in _resolve_uri
+    results = resolver.query('_mongodb._tcp.' + self.__fqdn, 'SRV',
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1597, in query
+    return resolve(
+           ^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1564, in resolve
+    return get_default_resolver().resolve(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1317, in resolve
+    (nameserver, tcp, backoff) = resolution.next_nameserver()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 764, in next_nameserver
+    raise NoNameservers(request=self.request, errors=self.errors)
+dns.resolver.NoNameservers: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Sem 8\DA Lab\energy_trading_game\households\views.py", line 50, in _connect
+    self.client = MongoClient(**connection_params)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\mongo_client.py", line 639, in __init__
+    res = uri_parser.parse_uri(
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\uri_parser.py", line 500, in parse_uri
+    nodes = dns_resolver.get_hosts()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 102, in get_hosts
+    _, nodes = self._get_srv_response_and_hosts(True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 83, in _get_srv_response_and_hosts
+    results = self._resolve_uri(encapsulate_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 79, in _resolve_uri
+    raise ConfigurationError(str(exc))
+pymongo.errors.ConfigurationError: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+2025-04-15 14:05:44,436 - households.views - CRITICAL - Critical MongoDB Connection Failure: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+Traceback (most recent call last):
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 72, in _resolve_uri
+    results = resolver.query('_mongodb._tcp.' + self.__fqdn, 'SRV',
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1597, in query
+    return resolve(
+           ^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1564, in resolve
+    return get_default_resolver().resolve(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1317, in resolve
+    (nameserver, tcp, backoff) = resolution.next_nameserver()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 764, in next_nameserver
+    raise NoNameservers(request=self.request, errors=self.errors)
+dns.resolver.NoNameservers: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Sem 8\DA Lab\energy_trading_game\households\views.py", line 50, in _connect
+    self.client = MongoClient(**connection_params)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\mongo_client.py", line 639, in __init__
+    res = uri_parser.parse_uri(
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\uri_parser.py", line 500, in parse_uri
+    nodes = dns_resolver.get_hosts()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 102, in get_hosts
+    _, nodes = self._get_srv_response_and_hosts(True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 83, in _get_srv_response_and_hosts
+    results = self._resolve_uri(encapsulate_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 79, in _resolve_uri
+    raise ConfigurationError(str(exc))
+pymongo.errors.ConfigurationError: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+2025-04-15 14:05:56,273 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-04-15 14:06:00,557 - households.views - CRITICAL - Critical MongoDB Connection Failure: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+Traceback (most recent call last):
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 72, in _resolve_uri
+    results = resolver.query('_mongodb._tcp.' + self.__fqdn, 'SRV',
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1597, in query
+    return resolve(
+           ^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1564, in resolve
+    return get_default_resolver().resolve(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1317, in resolve
+    (nameserver, tcp, backoff) = resolution.next_nameserver()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 764, in next_nameserver
+    raise NoNameservers(request=self.request, errors=self.errors)
+dns.resolver.NoNameservers: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Sem 8\DA Lab\energy_trading_game\households\views.py", line 50, in _connect
+    self.client = MongoClient(**connection_params)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\mongo_client.py", line 639, in __init__
+    res = uri_parser.parse_uri(
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\uri_parser.py", line 500, in parse_uri
+    nodes = dns_resolver.get_hosts()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 102, in get_hosts
+    _, nodes = self._get_srv_response_and_hosts(True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 83, in _get_srv_response_and_hosts
+    results = self._resolve_uri(encapsulate_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 79, in _resolve_uri
+    raise ConfigurationError(str(exc))
+pymongo.errors.ConfigurationError: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+2025-04-15 14:06:00,573 - households.views - CRITICAL - Critical MongoDB Connection Failure: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+Traceback (most recent call last):
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 72, in _resolve_uri
+    results = resolver.query('_mongodb._tcp.' + self.__fqdn, 'SRV',
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1597, in query
+    return resolve(
+           ^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1564, in resolve
+    return get_default_resolver().resolve(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 1317, in resolve
+    (nameserver, tcp, backoff) = resolution.next_nameserver()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\dns\resolver.py", line 764, in next_nameserver
+    raise NoNameservers(request=self.request, errors=self.errors)
+dns.resolver.NoNameservers: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\Sem 8\DA Lab\energy_trading_game\households\views.py", line 50, in _connect
+    self.client = MongoClient(**connection_params)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\mongo_client.py", line 639, in __init__
+    res = uri_parser.parse_uri(
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\uri_parser.py", line 500, in parse_uri
+    nodes = dns_resolver.get_hosts()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 102, in get_hosts
+    _, nodes = self._get_srv_response_and_hosts(True)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 83, in _get_srv_response_and_hosts
+    results = self._resolve_uri(encapsulate_errors)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\karth\AppData\Local\Programs\Python\Python312\Lib\site-packages\pymongo\srv_resolver.py", line 79, in _resolve_uri
+    raise ConfigurationError(str(exc))
+pymongo.errors.ConfigurationError: All nameservers failed to answer the query _mongodb._tcp.household.ipekb.mongodb.net. IN SRV: Server Do53:192.168.39.177@53 answered [WinError 10065] A socket operation was attempted to an unreachable host
+2025-04-15 14:08:44,530 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-04-15 14:08:51,201 - households.views - INFO - Successfully established robust MongoDB connection
+2025-04-15 14:08:52,198 - trading.views - INFO - Successfully connected to MongoDB

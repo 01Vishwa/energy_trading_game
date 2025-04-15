@@ -3576,3 +3576,48 @@ pymongo.errors.ConfigurationError: All nameservers failed to answer the query _m
 2025-04-15 14:08:44,530 - asyncio - DEBUG - Using proactor: IocpProactor
 2025-04-15 14:08:51,201 - households.views - INFO - Successfully established robust MongoDB connection
 2025-04-15 14:08:52,198 - trading.views - INFO - Successfully connected to MongoDB
+2025-04-15 14:08:58,901 - django.request - WARNING - Not Found: /favicon.ico
+2025-04-15 14:10:12,646 - households.views - INFO - search_households found 10 matches for query: ''
+2025-04-15 14:10:15,817 - trading.views - DEBUG - Household H001: total_production=0.4, power_consumption=0.0, surplus_energy=0.4
+2025-04-15 14:10:15,879 - trading.views - DEBUG - Household H002: total_production=0.4, power_consumption=0.0, surplus_energy=0.4
+2025-04-15 14:10:15,958 - trading.views - DEBUG - Household H003: total_production=0.5, power_consumption=0.0, surplus_energy=0.5
+2025-04-15 14:10:15,958 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:16,036 - trading.views - DEBUG - Household H004: total_production=0.37, power_consumption=0.0, surplus_energy=0.37
+2025-04-15 14:10:16,108 - trading.views - DEBUG - Household H005: total_production=0.7, power_consumption=0.0, surplus_energy=0.7
+2025-04-15 14:10:16,172 - trading.views - DEBUG - Household H006: total_production=3.0, power_consumption=0.0, surplus_energy=3.0
+2025-04-15 14:10:16,277 - trading.views - DEBUG - Household H007: total_production=8.1, power_consumption=0.0, surplus_energy=8.1
+2025-04-15 14:10:16,277 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:16,342 - trading.views - DEBUG - Household H008: total_production=8.1, power_consumption=0.0, surplus_energy=8.1
+2025-04-15 14:10:16,342 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:16,411 - trading.views - DEBUG - Household H009: total_production=0.5, power_consumption=0.0, surplus_energy=0.5
+2025-04-15 14:10:16,412 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:16,511 - trading.views - DEBUG - Household H010: total_production=1.8, power_consumption=0.0, surplus_energy=1.8
+2025-04-15 14:10:22,141 - trading.views - DEBUG - Household H001: total_production=0.4, power_consumption=0.0, surplus_energy=0.4
+2025-04-15 14:10:22,242 - trading.views - DEBUG - Household H002: total_production=0.4, power_consumption=0.0, surplus_energy=0.4
+2025-04-15 14:10:22,315 - trading.views - DEBUG - Household H003: total_production=0.5, power_consumption=0.0, surplus_energy=0.5
+2025-04-15 14:10:22,315 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:22,394 - trading.views - DEBUG - Household H004: total_production=0.37, power_consumption=0.0, surplus_energy=0.37
+2025-04-15 14:10:22,472 - trading.views - DEBUG - Household H005: total_production=0.7, power_consumption=0.0, surplus_energy=0.7
+2025-04-15 14:10:22,557 - trading.views - DEBUG - Household H006: total_production=3.0, power_consumption=0.0, surplus_energy=3.0
+2025-04-15 14:10:22,637 - trading.views - DEBUG - Household H007: total_production=8.1, power_consumption=0.0, surplus_energy=8.1
+2025-04-15 14:10:22,637 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:22,725 - trading.views - DEBUG - Household H008: total_production=8.1, power_consumption=0.0, surplus_energy=8.1
+2025-04-15 14:10:22,725 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:22,799 - trading.views - DEBUG - Household H009: total_production=0.5, power_consumption=0.0, surplus_energy=0.5
+2025-04-15 14:10:22,799 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:10:22,879 - trading.views - DEBUG - Household H010: total_production=1.8, power_consumption=0.0, surplus_energy=1.8
+2025-04-15 14:11:31,528 - households.views - INFO - search_households found 10 matches for query: ''
+2025-04-15 14:13:12,747 - trading.views - DEBUG - Household H001: total_production=0.4, power_consumption=0.0, surplus_energy=0.4
+2025-04-15 14:13:12,868 - trading.views - DEBUG - Household H002: total_production=0.4, power_consumption=0.0, surplus_energy=0.4
+2025-04-15 14:13:12,956 - trading.views - DEBUG - Household H003: total_production=0.5, power_consumption=0.0, surplus_energy=0.5
+2025-04-15 14:13:12,957 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:13:13,022 - trading.views - DEBUG - Household H004: total_production=0.37, power_consumption=0.0, surplus_energy=0.37
+2025-04-15 14:13:13,077 - trading.views - DEBUG - Household H005: total_production=0.7, power_consumption=0.0, surplus_energy=0.7
+2025-04-15 14:13:13,132 - trading.views - DEBUG - Household H006: total_production=3.0, power_consumption=0.0, surplus_energy=3.0
+2025-04-15 14:13:13,188 - trading.views - DEBUG - Household H007: total_production=8.1, power_consumption=0.0, surplus_energy=8.1
+2025-04-15 14:13:13,188 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:13:13,242 - trading.views - DEBUG - Household H008: total_production=8.1, power_consumption=0.0, surplus_energy=8.1
+2025-04-15 14:13:13,243 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:13:13,301 - trading.views - DEBUG - Household H009: total_production=0.5, power_consumption=0.0, surplus_energy=0.5
+2025-04-15 14:13:13,301 - trading.views - INFO - Critical grid condition detected. Trading disabled.
+2025-04-15 14:13:13,388 - trading.views - DEBUG - Household H010: total_production=1.8, power_consumption=0.0, surplus_energy=1.8

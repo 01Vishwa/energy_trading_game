@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Energy Grid Trading Platform</title>
+  <!-- Include Plotly.js for rendering the network graph -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     :root {
       --primary-color: #99BC85;
@@ -381,6 +383,13 @@
       color: #6c757d;
       font-size: 14px;
     }
+
+    /* Style for the network graph */
+    #network-graph {
+      width: 100%;
+      height: 600px;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -404,7 +413,7 @@
       <div class="stat-title">
         <i>⊕</i> Total Surplus Energy
       </div>
-      <div class="stat-value">450 kWh</div>
+      <div class="stat-value" id="total-surplus">0 kWh</div>
       <div class="stat-subtitle">Available for trading</div>
     </div>
     
@@ -412,7 +421,7 @@
       <div class="stat-title">
         <i>⊖</i> Total Required Energy
       </div>
-      <div class="stat-value">320 kWh</div>
+      <div class="stat-value" id="total-required">0 kWh</div>
       <div class="stat-subtitle">Energy deficit</div>
     </div>
     
@@ -420,7 +429,7 @@
       <div class="stat-title">
         <i>⚙</i> Trading Allowed
       </div>
-      <div class="stat-value">3 out of 5</div>
+      <div class="stat-value" id="trading-allowed">0 out of 0</div>
       <div class="stat-subtitle">Active participants</div>
     </div>
     
@@ -525,7 +534,7 @@
           Showing <span id="page-start">1</span> to <span id="page-end">5</span> of <span id="total-items">0</span> households
         </div>
         
-        <button class="analyse-button" onclick="analyseSelected()">Analyse Selected</button>
+        <button class="analyse-button" onclick="analyseSelected()">Analyse</button>
       </div>
       
       <div class="pagination" id="pagination">
@@ -635,39 +644,15 @@
         </tbody>
       </table>
 
-      <h3>Market Analysis</h3>
-      <div class="stats-container">
-        <div class="stat-card">
-          <div class="stat-title">Total Trades</div>
-          <div class="stat-value">{{ game_results.market_analysis.total_trades }}</div>
+      <!-- Network Graph Section -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i>📊</i> Trading Network Graph
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-title">P2P Trades</div>
-          <div class="stat-value">{{ game_results.market_analysis.p2p_trades }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">Grid Trades</div>
-          <div class="stat-value">{{ game_results.market_analysis.grid_trades }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">P2P Volume (kWh)</div>
-          <div class="stat-value">{{ game_results.market_analysis.p2p_volume }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">Grid Volume (kWh)</div>
-          <div class="stat-value">{{ game_results.market_analysis.grid_volume }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">Total Volume (kWh)</div>
-          <div class="stat-value">{{ game_results.market_analysis.total_volume }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">P2P Percentage (%)</div>
-          <div class="stat-value">{{ game_results.market_analysis.p2p_percentage }}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">Grid Percentage (%)</div>
-          <div class="stat-value">{{ game_results.market_analysis.grid_percentage }}</div>
+        <div id="network-graph">
+          {{ game_results.graph_html|safe }}
         </div>
       </div>
     </div>
@@ -685,7 +670,43 @@
     
     document.addEventListener('DOMContentLoaded', function() {
       initializePagination();
+      updateStatCards();
+      
+      // Add event listeners to checkboxes to update trading allowed stat
+      const checkboxes = document.querySelectorAll('.select-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateTradingAllowed);
+      });
     });
+    
+    function updateStatCards() {
+      // Calculate total surplus energy (sum of positive net energy)
+      let totalSurplus = 0;
+      let totalRequired = 0;
+      
+      const energyCells = document.querySelectorAll('td.positive, td.negative');
+      energyCells.forEach(cell => {
+        const energyValue = parseFloat(cell.textContent);
+        if (energyValue > 0) {
+          totalSurplus += energyValue;
+        } else if (energyValue < 0) {
+          totalRequired += Math.abs(energyValue);
+        }
+      });
+      
+      // Update the stat cards
+      document.getElementById('total-surplus').textContent = totalSurplus.toFixed(2) + ' kWh';
+      document.getElementById('total-required').textContent = totalRequired.toFixed(2) + ' kWh';
+      
+      // Initial update of trading allowed stat
+      updateTradingAllowed();
+    }
+    
+    function updateTradingAllowed() {
+      const totalRows = document.querySelectorAll('.data-row').length;
+      const selectedCheckboxes = document.querySelectorAll('input[name="select-household"]:checked').length;
+      document.getElementById('trading-allowed').textContent = selectedCheckboxes + ' out of ' + totalRows;
+    }
     
     function initializePagination() {
       const allRows = document.querySelectorAll('.data-row');
@@ -844,6 +865,7 @@
       });
       
       initializePagination();
+      updateStatCards(); // Recalculate stats after filtering
     }
     
     function resetFilters() {
@@ -856,6 +878,7 @@
       });
       
       initializePagination();
+      updateStatCards(); // Recalculate stats after resetting filters
     }
   </script>
 </body>

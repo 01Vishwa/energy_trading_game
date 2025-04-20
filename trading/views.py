@@ -11,52 +11,28 @@ import pandas as pd
 import hashlib
 import numpy as np
 import json
-
+import plotly.graph_objects as go
+import networkx as nx
 
 def hash_household_id(household_id):
-    """
-    Generate a SHA-256 hash for the given household ID for privacy.
-    """
     return hashlib.sha256(str(household_id).encode()).hexdigest()
 
-
 def process_energy_data(insert_to_db=True):
-    """
-    Internal helper to fetch raw energy data, compute derived metrics,
-    and return a DataFrame ready for insertion into energy_trading.
-    
-    Parameters:
-    insert_to_db (bool): Flag to control whether data should be inserted into MongoDB
-                         Set to False for game simulations to avoid modifying the database
-    """
-    # Connect to MongoDB
     client = MongoClient(settings.MONGO_URI)
     db = client[settings.MONGO_DB_NAME]
     energy_collection = db["energydata"]
-
-    # Fetch raw data
     raw_documents = list(energy_collection.find())
     df = pd.DataFrame(raw_documents)
-
-    # Ensure required fields exist
-    required_cols = [
-        "solarPower", "windPower", "powerConsumption", "voltage", "current",
-        "electricityPrice", "overloadCondition", "transformerFault", "householdId"
-    ]
+    required_cols = ["solarPower", "windPower", "powerConsumption", "voltage", "current",
+                     "electricityPrice", "overloadCondition", "transformerFault", "householdId"]
     for col in required_cols:
         if col not in df.columns:
             df[col] = 0
-
-    # Fill missing numeric values with 0 to avoid dtype conflicts
     numeric_cols = df.select_dtypes(include=['number']).columns
     df[numeric_cols] = df[numeric_cols].fillna(0)
-
-    # Handle datetime columns explicitly, if any
     datetime_cols = df.select_dtypes(include=['datetime64[ns]']).columns
     if not datetime_cols.empty:
         df[datetime_cols] = df[datetime_cols].fillna(pd.NaT)
-
-    # Compute derived metrics
     df["NetPower"] = (df["solarPower"] + df["windPower"] - df["powerConsumption"]).round(2)
     df["Efficiency"] = (((df["solarPower"] + df["windPower"]) / df["powerConsumption"]) * 100).round(2)
     df["OverloadRisk"] = (df["powerConsumption"] / (df["voltage"] * df["current"])).round(2)
@@ -68,36 +44,19 @@ def process_energy_data(insert_to_db=True):
     df["Role"] = df["NetPower"].apply(lambda x: "Producer" if x > 0 else "Consumer")
     df["householdId_hash"] = df["householdId"].apply(hash_household_id)
     df["Price"] = df["electricityPrice"].round(2)
-
-    # Select fields for insertion
-    fields = [
-        "householdId", "householdId_hash", "NetPower", "Efficiency",
-        "OverloadRisk", "AdjCost", "NoFault", "BothFaults",
-        "OverloadOnly", "TransformerFaultOnly", "Price", "Role"
-    ]
-    
-    # If insert_to_db flag is True, insert the processed data into MongoDB
+    fields = ["householdId", "householdId_hash", "NetPower", "Efficiency", "OverloadRisk", "AdjCost",
+              "NoFault", "BothFaults", "OverloadOnly", "TransformerFaultOnly", "Price", "Role"]
     if insert_to_db:
         results_collection = db["energy_trading"]
-        # Clear old data and insert new
         records = df[fields].to_dict(orient="records")
         results_collection.delete_many({})
         results_collection.insert_many(records)
-    
     return df[fields]
 
-
-# --------------------------- Energy Trading Game Functions ---------------------------
-# Constants for energy trading
-GRID_BUY_PRICE = 0.10   # Price grid buys surplus energy (EUR/kWh)
-GRID_SELL_PRICE = 0.20  # Price grid sells energy (EUR/kWh)
-
+GRID_BUY_PRICE = 0.10
+GRID_SELL_PRICE = 0.20
 
 def merge(left, right, compare):
-    """
-    Merge two sorted arrays based on the provided comparison function.
-    Used by the merge sort algorithm for sorting households.
-    """
     result = []
     i = j = 0
     while i < len(left) and j < len(right):
@@ -111,12 +70,7 @@ def merge(left, right, compare):
     result.extend(right[j:])
     return result
 
-
 def merge_sort(arr, compare):
-    """
-    Implementation of merge sort algorithm using a custom comparison function.
-    Used to sort households by their energy production or consumption levels.
-    """
     if len(arr) <= 1:
         return arr
     mid = len(arr) // 2
@@ -124,100 +78,63 @@ def merge_sort(arr, compare):
     right = merge_sort(arr[mid:], compare)
     return merge(left, right, compare)
 
-
 def prepare_households_for_trading(df):
-    """
-    Convert DataFrame rows into a format suitable for the trading algorithm.
-    Each household is identified by a key and contains its trading properties.
-    """
     households = {}
-    
-    # Process each row in the DataFrame
     for _, row in df.iterrows():
         household_id = str(row['householdId'])
         net_power = float(row['NetPower'])
         role = 'seller' if net_power > 0 else 'buyer'
-        
-        # Create household entry with trading attributes
         households[f"H{household_id}"] = {
             'householdId': household_id,
             'role': role,
-            'net': abs(net_power),  # Absolute value for easier sorting
-            'remaining': abs(net_power),  # Energy left to trade
+            'net': abs(net_power),
+            'remaining': abs(net_power),
             'price': float(row['Price']),
-            'traded_units': 0,      # Total energy traded
-            'p2p_traded_units': 0,  # Energy traded peer-to-peer
-            'total_price': 0.0,     # Revenue or cost from trading
-            'no_fault': bool(row['NoFault'])  # Only fault-free can trade
+            'traded_units': 0,
+            'p2p_traded_units': 0,
+            'total_price': 0.0,
+            'no_fault': bool(row['NoFault']),
+            'both_faults': bool(row['BothFaults'])
         }
-    
     return households
 
-
 def perform_trading(households):
-    """
-    Execute the energy trading algorithm using provided household data.
-    Returns the updated households and a list of all trades that occurred.
-    """
-    # Filter households with no faults (eligible for trading)
-    eligible_households = {name: data for name, data in households.items() if data.get('no_fault', True)}
-    
-    # Separate sellers and buyers
+    eligible_households = {name: data for name, data in households.items() 
+                          if not data.get('both_faults', False)}
     sellers = {n: d for n, d in eligible_households.items() if d['role'] == 'seller' and d['net'] > 0}
     buyers = {n: d for n, d in eligible_households.items() if d['role'] == 'buyer' and d['net'] > 0}
-
-    # Define comparison functions for sorting
-    compare_seller = lambda a, b: a[1]['net'] > b[1]['net']  # Sort sellers by amount (descending)
-    compare_buyer = lambda a, b: a[1]['net'] < b[1]['net']   # Sort buyers by amount (ascending)
-
-    # Sort sellers and buyers
+    compare_seller = lambda a, b: a[1]['net'] > b[1]['net']
+    compare_buyer = lambda a, b: a[1]['net'] < b[1]['net']
     sorted_sellers = merge_sort(list(sellers.items()), compare_seller)
     sorted_buyers = merge_sort(list(buyers.items()), compare_buyer)
-
     trades = []
-    
-    # Step 1: Peer-to-Peer Trading (Double Auction)
     for s_name, s_data in sorted_sellers:
         for b_name, b_data in sorted_buyers:
-            # Check if both have energy left to trade
             if s_data['remaining'] > 0 and b_data['remaining'] > 0:
-                # Check if buyer's price offer is acceptable to seller
                 if b_data['price'] >= s_data['price']:
-                    # Determine trade quantity (minimum of what's available)
                     trade_qty = min(s_data['remaining'], b_data['remaining'])
-                    # Calculate average price between seller and buyer
                     traded_price = np.round((s_data['price'] + b_data['price']) / 2, 2)
-                    
-                    # Update seller records
                     s_data['traded_units'] += trade_qty
                     s_data['p2p_traded_units'] += trade_qty
-                    s_data['total_price'] += trade_qty * traded_price  # Revenue
-                    s_data['remaining'] -= trade_qty  # Reduce energy left
-                    
-                    # Update buyer records
+                    s_data['total_price'] += trade_qty * traded_price
+                    s_data['remaining'] -= trade_qty
                     b_data['traded_units'] += trade_qty
                     b_data['p2p_traded_units'] += trade_qty
-                    b_data['total_price'] -= trade_qty * traded_price  # Cost
-                    b_data['remaining'] -= trade_qty  # Reduce energy needed
-                    
-                    # Record the trade
+                    b_data['total_price'] -= trade_qty * traded_price
+                    b_data['remaining'] -= trade_qty
                     trades.append({
                         'seller': s_name,
                         'buyer': b_name,
                         'quantity': trade_qty,
                         'price': traded_price,
-                        'type': 'p2p'  # Peer-to-peer trade
+                        'type': 'p2p'
                     })
-
-    # Step 2: Grid Trading (Fallback for untraded energy)
-    # Sellers sell remaining energy to the grid at lower price
     for s_name, s_data in sellers.items():
         if s_data['remaining'] > 0:
             trade_qty = s_data['remaining']
             s_data['traded_units'] += trade_qty
             s_data['total_price'] += trade_qty * GRID_BUY_PRICE
             s_data['remaining'] = 0
-            
             trades.append({
                 'seller': s_name,
                 'buyer': 'grid',
@@ -225,15 +142,12 @@ def perform_trading(households):
                 'price': GRID_BUY_PRICE,
                 'type': 'grid'
             })
-
-    # Buyers purchase remaining energy needs from grid at higher price
     for b_name, b_data in buyers.items():
         if b_data['remaining'] > 0:
             trade_qty = b_data['remaining']
             b_data['traded_units'] += trade_qty
             b_data['total_price'] -= trade_qty * GRID_SELL_PRICE
             b_data['remaining'] = 0
-            
             trades.append({
                 'seller': 'grid',
                 'buyer': b_name,
@@ -241,27 +155,16 @@ def perform_trading(households):
                 'price': GRID_SELL_PRICE,
                 'type': 'grid'
             })
-
     return eligible_households, trades
 
-
 def analyze_market_equilibrium(trades):
-    """
-    Analyze trading results to understand market dynamics.
-    Returns a dictionary with key metrics about the trading session.
-    """
-    # Calculate p2p and grid trading volumes
     p2p_trades = [t for t in trades if t['type'] == 'p2p']
     grid_trades = [t for t in trades if t['type'] == 'grid']
-    
     p2p_volume = sum(t['quantity'] for t in p2p_trades)
     grid_volume = sum(t['quantity'] for t in grid_trades)
     total_volume = p2p_volume + grid_volume
-    
-    # Calculate percentages
     p2p_percentage = 0 if total_volume == 0 else (p2p_volume / total_volume * 100)
     grid_percentage = 0 if total_volume == 0 else (grid_volume / total_volume * 100)
-    
     return {
         'total_trades': len(trades),
         'p2p_trades': len(p2p_trades),
@@ -273,78 +176,168 @@ def analyze_market_equilibrium(trades):
         'grid_percentage': round(grid_percentage, 1)
     }
 
+def generate_network_graph_html(trades, households):
+    G = nx.DiGraph()
+    for name, data in households.items():
+        G.add_node(name, role=data['role'])
+    G.add_node('grid', role='grid')
+    for trade in trades:
+        G.add_edge(trade['seller'], trade['buyer'],
+                   quantity=trade['quantity'],
+                   price=trade['price'],
+                   type=trade['type'])
+    pos = nx.spring_layout(G, seed=42)
+    if 'grid' in pos:
+        pos['grid'] = np.array([0, 0])
+    edge_x_p2p, edge_y_p2p, edge_text_p2p = [], [], []
+    edge_x_grid, edge_y_grid, edge_text_grid = [], [], []
+    for edge in G.edges(data=True):
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        if edge[2]['type'] == 'p2p':
+            edge_x_p2p += [x0, x1, None]
+            edge_y_p2p += [y0, y1, None]
+            edge_text_p2p.append(f"{edge[0]}→{edge[1]}: {edge[2]['quantity']} kWh @ ${edge[2]['price']:.2f}")
+        else:
+            edge_x_grid += [x0, x1, None]
+            edge_y_grid += [y0, y1, None]
+            edge_text_grid.append(f"{edge[0]}→{edge[1]}: {edge[2]['quantity']} kWh @ ${edge[2]['price']:.2f}")
+    edge_trace_p2p = go.Scatter(
+        x=edge_x_p2p, y=edge_y_p2p,
+        line=dict(width=1.5, color='purple'),
+        hoverinfo='text',
+        text=edge_text_p2p,
+        mode='lines',
+        name='P2P Trades'
+    )
+    edge_trace_grid = go.Scatter(
+        x=edge_x_grid, y=edge_y_grid,
+        line=dict(width=1.5, color='gray', dash='dash'),
+        hoverinfo='text',
+        text=edge_text_grid,
+        mode='lines',
+        name='Grid Trades'
+    )
+    node_x_seller, node_y_seller, node_text_seller = [], [], []
+    node_x_buyer, node_y_buyer, node_text_buyer = [], [], []
+    node_x_grid, node_y_grid, node_text_grid = [], [], []
+    for node in G.nodes():
+        x, y = pos[node]
+        role = G.nodes[node]['role']
+        if node == 'grid':
+            node_x_grid.append(x)
+            node_y_grid.append(y)
+            node_text_grid.append("Grid")
+        elif role == 'seller':
+            node_x_seller.append(x)
+            node_y_seller.append(y)
+            node_text_seller.append(f"{node}: Seller")
+        elif role == 'buyer':
+            node_x_buyer.append(x)
+            node_y_buyer.append(y)
+            node_text_buyer.append(f"{node}: Buyer")
+    seller_trace = go.Scatter(
+        x=node_x_seller, y=node_y_seller,
+        mode='markers+text',
+        text=node_text_seller,
+        textposition="top center",
+        marker=dict(size=20, color='green'),
+        name='Sellers (Producers)'
+    )
+    buyer_trace = go.Scatter(
+        x=node_x_buyer, y=node_y_buyer,
+        mode='markers+text',
+        text=node_text_buyer,
+        textposition="top center",
+        marker=dict(size=20, color='red'),
+        name='Buyers (Consumers)'
+    )
+    grid_trace = go.Scatter(
+        x=node_x_grid, y=node_y_grid,
+        mode='markers+text',
+        text=node_text_grid,
+        textposition="top center",
+        marker=dict(size=25, color='blue'),
+        name='Grid'
+    )
+    fig = go.Figure(
+        data=[edge_trace_p2p, edge_trace_grid, seller_trace, buyer_trace, grid_trace],
+        layout=go.Layout(
+            title="Energy Trading Network",
+            showlegend=True,
+            hovermode='closest',
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            legend=dict(x=0, y=1.1, orientation="h"),
+            margin=dict(l=20, r=20, t=50, b=20)
+        )
+    )
+    for edge in G.edges(data=True):
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        mid_x = (x0 + x1) / 2
+        mid_y = (y0 + y1) / 2
+        dx = x1 - x0
+        dy = y1 - y0
+        length = np.sqrt(dx*2 + dy*2)
+        if length > 0:
+            perp_dx = -dy / length
+            perp_dy = dx / length
+        else:
+            perp_dx, perp_dy = 0, 0
+        offset = 0.05
+        label_x = mid_x + offset * perp_dx
+        label_y = mid_y + offset * perp_dy
+        quantity = edge[2]['quantity']
+        fig.add_annotation(
+            x=label_x, y=label_y,
+            text=f"{quantity} kWh",
+            showarrow=False,
+            font=dict(size=10, color='black'),
+            bgcolor='rgba(255, 255, 255, 0.7)',
+            bordercolor='rgba(0, 0, 0, 0.5)',
+            borderwidth=1,
+            borderpad=2,
+            align='center'
+        )
+    graph_html = fig.to_html(full_html=False, include_plotlyjs=False)
+    return graph_html
 
 def energy_report(request):
-    """
-    View to display processed energy trading data in a template.
-    Also performs the energy trading simulation and passes results to template.
-    """
     try:
-        # Process energy data with database insertion
         df_processed = process_energy_data(insert_to_db=True)
-
-        # Connect to MongoDB to fetch data for display
         client = MongoClient(settings.MONGO_URI)
         db = client[settings.MONGO_DB_NAME]
         results_collection = db["energy_trading"]
-
-        # Fetch for display, excluding hashed IDs
-        data_to_display = list(
-            results_collection.find(
-                {},
-                {"_id": 0, "householdId_hash": 0}
-            )
-        )
-        
-        # Set up pagination
-        paginator = Paginator(data_to_display, 5)  # Show 5 rows per page
+        data_to_display = list(results_collection.find({}, {"_id": 0, "householdId_hash": 0}))
+        paginator = Paginator(data_to_display, 5)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
-        
-        # Get game results from session if available
         game_results = request.session.get('trading_game_results', None)
-        
-        # Clear game results from session after retrieving them
         if 'trading_game_results' in request.session:
             del request.session['trading_game_results']
-        
-        # Create context with all data for template
         context = {
             "data": data_to_display,
             "page_obj": page_obj,
             "paginator": paginator,
-            "game_results": game_results  # Pass game results to template
+            "game_results": game_results
         }
-        
         return render(request, "report.html", context)
-
     except Exception as e:
-        # Render with error message
         return render(request, "report.html", {"error": f"An error occurred: {e}"})
 
-
 def update_energy_trading_collection(request):
-    """
-    API endpoint to refresh the energy_trading MongoDB collection.
-    Also performs a trading simulation and returns basic results.
-    """
     try:
-        # Process data and insert into database
         df_processed = process_energy_data(insert_to_db=True)
-
-        # Connect to check insertion count
         client = MongoClient(settings.MONGO_URI)
         db = client[settings.MONGO_DB_NAME]
         results_collection = db["energy_trading"]
         count = results_collection.count_documents({})
-            
-        # Run trading simulation for API results
         households = prepare_households_for_trading(df_processed)
         traded_households, trades = perform_trading(households)
         market_analysis = analyze_market_equilibrium(trades)
-
         return JsonResponse({
-            "status": "success", 
+            "status": "success",
             "inserted": count,
             "trading_summary": {
                 "total_trades": market_analysis['total_trades'],
@@ -353,61 +346,37 @@ def update_energy_trading_collection(request):
                 "p2p_percentage": market_analysis['p2p_percentage']
             }
         })
-
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-
 @require_POST
 def select_household(request):
-    """
-    Handle the selection of a household from the grid participants table.
-    Also runs a trading simulation for the selected household.
-    """
     try:
         household_id = request.POST.get('household_id')
-        
         if not household_id:
             return JsonResponse({"status": "error", "message": "No household ID provided"}, status=400)
-        
-        # Connect to MongoDB
         client = MongoClient(settings.MONGO_URI)
         db = client[settings.MONGO_DB_NAME]
-        
-        # Find the selected household
         results_collection = db["energy_trading"]
         selected_household = results_collection.find_one({"householdId": household_id})
-        
         if not selected_household:
             return JsonResponse({"status": "error", "message": "Household not found"}, status=404)
-        
-        # Store the selection in session
+        if selected_household.get('NoFault', 0) != 1:
+            messages.warning(request, f"Household {household_id} has faults and cannot participate in trading.")
+            return redirect(reverse('energy_report'))
         request.session['selected_household_id'] = household_id
         messages.success(request, f"Household {household_id} selected successfully.")
-        
-        # Redirect back to the report page
         return redirect(reverse('energy_report'))
-        
     except Exception as e:
         messages.error(request, f"Error selecting household: {str(e)}")
         return redirect(reverse('energy_report'))
 
-
 def run_trading_simulation(request):
-    """
-    API endpoint to execute a new energy trading simulation.
-    Returns detailed trading results as JSON for frontend visualization.
-    """
     try:
-        # Get fresh energy data without inserting into MongoDB
         df_processed = process_energy_data(insert_to_db=False)
-        
-        # Prepare and run trading simulation
         households = prepare_households_for_trading(df_processed)
         traded_households, trades = perform_trading(households)
         market_analysis = analyze_market_equilibrium(trades)
-        
-        # Format household data for JSON response
         households_data = {}
         for name, data in traded_households.items():
             households_data[name] = {
@@ -419,80 +388,64 @@ def run_trading_simulation(request):
                 'p2p_traded': data['p2p_traded_units'],
                 'revenue_cost': data['total_price']
             }
-        
-        # Return detailed results
         return JsonResponse({
             "status": "success",
             "households": households_data,
             "trades": trades,
             "market_analysis": market_analysis
         })
-        
     except Exception as e:
-        return JsonResponse({
-            "status": "error",
-            "message": str(e)
-        }, status=500)
-
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 @csrf_exempt
 @require_POST
 def start_trading_game(request):
-    """
-    Handles the request to start a trading game with selected households.
-    Processes selected household IDs from form data, runs the trading simulation,
-    and stores results in session for display in report page.
-    """
     try:
-        # Get selected household IDs from form data
         household_ids = []
         for key, value in request.POST.items():
             if key.startswith('household_ids['):
                 household_ids.append(value)
-        
         if not household_ids:
-            return JsonResponse({
-                "success": False,
-                "error": "No households selected"
-            }, status=400)
-        
-        # Get full energy data WITHOUT inserting into MongoDB
+            return JsonResponse({"success": False, "error": "No households selected"}, status=400)
         df_processed = process_energy_data(insert_to_db=False)
-        
-        # Filter dataset to only include selected households
         selected_df = df_processed[df_processed['householdId'].astype(str).isin(household_ids)]
-        
         if selected_df.empty:
-            return JsonResponse({
-                "success": False,
-                "error": "Selected households not found in dataset"
-            }, status=404)
-        
-        # Prepare filtered households for trading
+            return JsonResponse({"success": False, "error": "Selected households not found in dataset"}, status=404)
+        fault_households = selected_df[selected_df['NoFault'] != 1]['householdId'].tolist()
+        if fault_households:
+            fault_ids = ", ".join(map(str, fault_households))
+            messages.warning(request, f"Households with IDs {fault_ids} have faults and will be excluded from trading.")
         households = prepare_households_for_trading(selected_df)
-        
-        # Run trading simulation
         traded_households, trades = perform_trading(households)
         market_analysis = analyze_market_equilibrium(trades)
-        
-        # Format households data for template display
+        graph_html = generate_network_graph_html(trades, traded_households)
         households_data = []
-        for name, data in traded_households.items():
-            households_data.append({
+        for name, data in households.items():
+            household_info = {
                 'household_id': data['householdId'],
                 'role': data['role'],
                 'original_energy': data['net'],
                 'price': data['price'],
-                'total_traded': data['traded_units'],
-                'p2p_traded': data['p2p_traded_units'],
-                'grid_traded': data['traded_units'] - data['p2p_traded_units'],
-                'financial_result': round(data['total_price'], 2),
-            })
-        
-        # Format trades for template display
+                'status': 'excluded due to faults' if not data['no_fault'] else 'traded',
+            }
+            if data['no_fault'] and name in traded_households:
+                traded_data = traded_households[name]
+                household_info.update({
+                    'total_traded': traded_data['traded_units'],
+                    'p2p_traded': traded_data['p2p_traded_units'],
+                    'grid_traded': traded_data['traded_units'] - traded_data['p2p_traded_units'],
+                    'financial_result': round(traded_data['total_price'], 2),
+                })
+            else:
+                household_info.update({
+                    'total_traded': 0,
+                    'p2p_traded': 0,
+                    'grid_traded': 0,
+                    'financial_result': 0.0,
+                })
+            households_data.append(household_info)
         p2p_trades = []
         grid_trades = []
-        
         for trade in trades:
             if trade['type'] == 'p2p':
                 p2p_trades.append({
@@ -502,10 +455,10 @@ def start_trading_game(request):
                     'price': trade['price'],
                     'total_value': round(trade['quantity'] * trade['price'], 2)
                 })
-            else:  # grid trade
+            else:
                 grid_trades.append({
                     'participant_id': (
-                        trade['seller'].replace('H', '') if trade['seller'] != 'grid' 
+                        trade['seller'].replace('H', '') if trade['seller'] != 'grid'
                         else trade['buyer'].replace('H', '')
                     ),
                     'role': 'seller' if trade['seller'] != 'grid' else 'buyer',
@@ -513,25 +466,14 @@ def start_trading_game(request):
                     'price': trade['price'],
                     'total_value': round(trade['quantity'] * trade['price'], 2)
                 })
-        
-        # Create complete game results object
         game_results = {
             'households': households_data,
             'p2p_trades': p2p_trades,
             'grid_trades': grid_trades,
-            'market_analysis': market_analysis
+            'market_analysis': market_analysis,
+            'graph_html': graph_html
         }
-        
-        # Store in session for retrieval by the report page
         request.session['trading_game_results'] = game_results
-        
-        # Redirect to the energy_report view
         return redirect('energy_report')
-    
     except Exception as e:
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        }, status=500)
-
-# Note: Ensure that the above functions are properly integrated into your Django views.py file.
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

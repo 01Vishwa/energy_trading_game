@@ -247,18 +247,17 @@
     }
 
     .center-view-btn {
-      padding: 10px 20px;
+      padding: 15px 30px;
       background-color: var(--primary-color);
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
-      font-size: 0.9rem;
+      font-size: 1.2rem;
       transition: background-color 0.2s;
       display: flex;
       align-items: center;
-      flex: 1;
       justify-content: center;
     }
 
@@ -737,11 +736,8 @@
           </ul>
         </div>
 
-        <!-- Navigation Buttons Row -->
-        <div class="nav-buttons">
-          <button class="center-view-btn" id="deleteButton" onclick="deleteHousehold();">
-            <i class="fas fa-trash"></i> Delete
-          </button>
+        <!-- Center View Button -->
+        <div class="center-view-container">
           <button class="center-view-btn" id="nextButton" onclick="window.location.href='report.html';">
             <i class="fas fa-arrow-right"></i> Next
           </button>
@@ -1247,11 +1243,6 @@
       nextButton.addEventListener('click', () => {
         // Implement next household functionality if needed
       });
-
-      // Delete button function
-      window.deleteHousehold = function() {
-        alert('Delete button clicked. Implement delete functionality.');
-      };
 
       // Tab switching logic
       document.querySelectorAll('.tab').forEach(tab => {

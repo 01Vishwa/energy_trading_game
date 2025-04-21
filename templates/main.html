@@ -237,38 +237,6 @@
       visibility: visible;
     }
 
-    /* Center View Button */
-    .center-view-container {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-top: auto;
-      padding-top: 15px;
-    }
-
-    .center-view-btn {
-      padding: 15px 30px;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 1.2rem;
-      transition: background-color 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .center-view-btn i {
-      margin-right: 8px;
-    }
-
-    .center-view-btn:hover {
-      background-color: #1a2732;
-    }
-
     /* Main Content */
     .main-content {
       display: grid;
@@ -677,7 +645,7 @@
     }
 
     @media (max-width: 480px) {
-      .energy-datarin {
+      .energy-data {
         grid-template-columns: 1fr;
       }
       .trading-options {
@@ -734,13 +702,6 @@
           <ul class="household-list" id="householdList">
             <!-- Dynamically populated -->
           </ul>
-        </div>
-
-        <!-- Center View Button -->
-        <div class="center-view-container">
-          <button class="center-view-btn" id="nextButton" onclick="window.location.href='report.html';">
-            <i class="fas fa-arrow-right"></i> Next
-          </button>
         </div>
       </div>
 
@@ -833,7 +794,7 @@
                 <div class="price">
                   <i class="fas fa-coins"></i> Current Direct Trading Price: $<span id="directPrice">0.00</span>/kWh
                 </div>
-                <button class="btn btn-primary" id="sellEnergyBtn">
+                <button class="btn btn-primary" id="sellEnergyBtn" onclick="window.location.href='report.html';">
                   <i class="fas fa-dollar-sign"></i> Sell Energy
                 </button>
               </div>
@@ -921,7 +882,6 @@
       const searchButton = document.getElementById('searchOkBtn');
       const resetButton = document.getElementById('resetSearchBtn');
       const householdList = document.getElementById('householdList');
-      const nextButton = document.getElementById('nextButton');
 
       // Global chart instances
       let tempHumidityChart, energyMixChart;
@@ -930,7 +890,6 @@
       // State Variables
       let currentHouseholds = [];
       let selectedHousehold = null;
-      let currentPageIndex = 0;
 
       // Update a value in the DOM with error handling
       function updateValue(id, value, decimals = 2) {
@@ -984,7 +943,6 @@
           const response = await axios.get('/search_households/', { params: { query: searchTerm } });
           currentHouseholds = response.data;
           currentHouseholds.sort((a, b) => a.localeCompare(b));
-          currentPageIndex = 0;
           renderHouseholdList(currentHouseholds);
         } catch (error) {
           console.error('Error fetching households:', error);
@@ -1238,10 +1196,6 @@
       resetButton.addEventListener('click', () => {
         searchInput.value = '';
         fetchHouseholds();
-      });
-
-      nextButton.addEventListener('click', () => {
-        // Implement next household functionality if needed
       });
 
       // Tab switching logic

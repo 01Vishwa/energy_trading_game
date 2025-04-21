@@ -14,6 +14,14 @@ import json
 import plotly.graph_objects as go
 import networkx as nx
 
+# Constants for grid pricing
+GRID_BUY_PRICE = 0.10  # Grid buys surplus from producers at $0.10 per kWh
+GRID_SELL_PRICE = 0.20  # Grid sells energy to consumers at $0.20 per kWh
+SELLER_PRICE_LOW = GRID_BUY_PRICE + 0.01  # 0.11
+SELLER_PRICE_HIGH = GRID_SELL_PRICE - 0.01  # 0.19
+BUYER_PRICE_LOW = SELLER_PRICE_LOW  # 0.11
+BUYER_PRICE_HIGH = GRID_SELL_PRICE  # 0.20
+
 def hash_household_id(household_id):
     return hashlib.sha256(str(household_id).encode()).hexdigest()
 
@@ -53,9 +61,6 @@ def process_energy_data(insert_to_db=True):
         results_collection.insert_many(records)
     return df[fields]
 
-GRID_BUY_PRICE = 0.10
-GRID_SELL_PRICE = 0.20
-
 def merge(left, right, compare):
     result = []
     i = j = 0
@@ -87,8 +92,8 @@ def prepare_households_for_trading(df):
         households[f"H{household_id}"] = {
             'householdId': household_id,
             'role': role,
-            'net': abs(net_power),
-            'remaining': abs(net_power),
+            'net': net_power,
+            'remaining': net_power,
             'price': float(row['Price']),
             'traded_units': 0,
             'p2p_traded_units': 0,
@@ -99,20 +104,25 @@ def prepare_households_for_trading(df):
     return households
 
 def perform_trading(households):
-    eligible_households = {name: data for name, data in households.items() 
-                          if not data.get('both_faults', False)}
+    eligible_households = {name: data for name, data in households.items() if data['no_fault']}
     sellers = {n: d for n, d in eligible_households.items() if d['role'] == 'seller' and d['net'] > 0}
-    buyers = {n: d for n, d in eligible_households.items() if d['role'] == 'buyer' and d['net'] > 0}
+    buyers = {n: d for n, d in eligible_households.items() if d['role'] == 'buyer' and d['net'] < 0}
+
+    # Sort sellers by net energy descending (highest surplus first)
     compare_seller = lambda a, b: a[1]['net'] > b[1]['net']
-    compare_buyer = lambda a, b: a[1]['net'] < b[1]['net']
     sorted_sellers = merge_sort(list(sellers.items()), compare_seller)
+    
+    # Sort buyers by net energy ascending (most negative first)
+    compare_buyer = lambda a, b: a[1]['net'] < b[1]['net']
     sorted_buyers = merge_sort(list(buyers.items()), compare_buyer)
+
     trades = []
+    # P2P Trading
     for s_name, s_data in sorted_sellers:
         for b_name, b_data in sorted_buyers:
-            if s_data['remaining'] > 0 and b_data['remaining'] > 0:
+            if s_data['remaining'] > 0 and b_data['remaining'] < 0:
                 if b_data['price'] >= s_data['price']:
-                    trade_qty = min(s_data['remaining'], b_data['remaining'])
+                    trade_qty = min(s_data['remaining'], -b_data['remaining'])
                     traded_price = np.round((s_data['price'] + b_data['price']) / 2, 2)
                     s_data['traded_units'] += trade_qty
                     s_data['p2p_traded_units'] += trade_qty
@@ -121,7 +131,7 @@ def perform_trading(households):
                     b_data['traded_units'] += trade_qty
                     b_data['p2p_traded_units'] += trade_qty
                     b_data['total_price'] -= trade_qty * traded_price
-                    b_data['remaining'] -= trade_qty
+                    b_data['remaining'] += trade_qty
                     trades.append({
                         'seller': s_name,
                         'buyer': b_name,
@@ -129,51 +139,52 @@ def perform_trading(households):
                         'price': traded_price,
                         'type': 'p2p'
                     })
+
+    # Grid Trading: Remaining surplus
     for s_name, s_data in sellers.items():
         if s_data['remaining'] > 0:
-            trade_qty = s_data['remaining']
-            s_data['traded_units'] += trade_qty
-            s_data['total_price'] += trade_qty * GRID_BUY_PRICE
-            s_data['remaining'] = 0
+            qty = s_data['remaining']
+            s_data['traded_units'] += qty
+            s_data['total_price'] += qty * GRID_BUY_PRICE
             trades.append({
                 'seller': s_name,
                 'buyer': 'grid',
-                'quantity': trade_qty,
+                'quantity': qty,
                 'price': GRID_BUY_PRICE,
                 'type': 'grid'
             })
+            s_data['remaining'] = 0
+
+    # Grid Trading: Remaining demand
     for b_name, b_data in buyers.items():
-        if b_data['remaining'] > 0:
-            trade_qty = b_data['remaining']
-            b_data['traded_units'] += trade_qty
-            b_data['total_price'] -= trade_qty * GRID_SELL_PRICE
-            b_data['remaining'] = 0
+        if b_data['remaining'] < 0:
+            qty = -b_data['remaining']
+            b_data['traded_units'] += qty
+            b_data['total_price'] -= qty * GRID_SELL_PRICE
             trades.append({
                 'seller': 'grid',
                 'buyer': b_name,
-                'quantity': trade_qty,
+                'quantity': qty,
                 'price': GRID_SELL_PRICE,
                 'type': 'grid'
             })
+            b_data['remaining'] = 0
+
     return eligible_households, trades
 
 def analyze_market_equilibrium(trades):
-    p2p_trades = [t for t in trades if t['type'] == 'p2p']
-    grid_trades = [t for t in trades if t['type'] == 'grid']
-    p2p_volume = sum(t['quantity'] for t in p2p_trades)
-    grid_volume = sum(t['quantity'] for t in grid_trades)
-    total_volume = p2p_volume + grid_volume
-    p2p_percentage = 0 if total_volume == 0 else (p2p_volume / total_volume * 100)
-    grid_percentage = 0 if total_volume == 0 else (grid_volume / total_volume * 100)
+    p2p_vol = sum(t['quantity'] for t in trades if t['type'] == 'p2p')
+    grid_vol = sum(t['quantity'] for t in trades if t['type'] == 'grid')
+    total_vol = p2p_vol + grid_vol
     return {
         'total_trades': len(trades),
-        'p2p_trades': len(p2p_trades),
-        'grid_trades': len(grid_trades),
-        'p2p_volume': round(p2p_volume, 2),
-        'grid_volume': round(grid_volume, 2),
-        'total_volume': round(total_volume, 2),
-        'p2p_percentage': round(p2p_percentage, 1),
-        'grid_percentage': round(grid_percentage, 1)
+        'p2p_trades': sum(1 for t in trades if t['type'] == 'p2p'),
+        'grid_trades': sum(1 for t in trades if t['type'] == 'grid'),
+        'p2p_volume': round(p2p_vol, 2),
+        'grid_volume': round(grid_vol, 2),
+        'total_volume': round(total_vol, 2),
+        'p2p_percentage': round((p2p_vol / total_vol * 100) if total_vol else 0, 1),
+        'grid_percentage': round((grid_vol / total_vol * 100) if total_vol else 0, 1)
     }
 
 def generate_network_graph_html(trades, households):
@@ -279,7 +290,7 @@ def generate_network_graph_html(trades, households):
         mid_y = (y0 + y1) / 2
         dx = x1 - x0
         dy = y1 - y0
-        length = np.sqrt(dx*2 + dy*2)
+        length = np.sqrt(dx*dx + dy*dy)
         if length > 0:
             perp_dx = -dy / length
             perp_dy = dx / length

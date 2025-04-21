@@ -390,6 +390,11 @@
       height: 600px;
       margin-top: 20px;
     }
+
+    /* Added rule to adjust filter-container inside panel-header */
+    .panel-header .filter-container {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -463,29 +468,26 @@
         <div class="panel-title">
           <i>🏠</i> Grid Participants
         </div>
-      </div>
-      
-      <div class="filter-container">
-        <div class="filter-group">
-          <span class="filter-label">Role:</span>
-          <select class="filter-select" id="role-filter">
-            <option value="all">All Roles</option>
-            <option value="producer">Producer</option>
-            <option value="consumer">Consumer</option>
-          </select>
+        <div class="filter-container">
+          <div class="filter-group">
+            <span class="filter-label">Role:</span>
+            <select class="filter-select" id="role-filter">
+              <option value="all">All</option>
+              <option value="producer">Producer</option>
+              <option value="consumer">Consumer</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Both Faults:</span>
+            <select class="filter-select" id="fault-filter">
+              <option value="all">All</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <button class="filter-button" onclick="applyFilters()">Apply</button>
+          <button class="reset-button" onclick="resetFilters()">Reset</button>
         </div>
-        
-        <div class="filter-group">
-          <span class="filter-label">Both Faults:</span>
-          <select class="filter-select" id="fault-filter">
-            <option value="all">All</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-        
-        <button class="filter-button" onclick="applyFilters()">Apply Filters</button>
-        <button class="reset-button" onclick="resetFilters()">Reset</button>
       </div>
       
       <div class="table-responsive">
@@ -554,49 +556,15 @@
         </div>
       </div>
 
-      <h3>Households Summary</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Household ID</th>
-            <th>Role</th>
-            <th>Original Energy (kWh)</th>
-            <th>Price ($/kWh)</th>
-            <th>Total Traded (kWh)</th>
-            <th>P2P Traded (kWh)</th>
-            <th>Grid Traded (kWh)</th>
-            <th>Financial Result ($)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for household in game_results.households %}
-          <tr>
-            <td>{{ household.household_id }}</td>
-            <td>{{ household.role|capfirst }}</td>
-            <td>{{ household.original_energy|floatformat:2 }}</td>
-            <td>{{ household.price|floatformat:2 }}</td>
-            <td>{{ household.total_traded|floatformat:2 }}</td>
-            <td>{{ household.p2p_traded|floatformat:2 }}</td>
-            <td>{{ household.grid_traded|floatformat:2 }}</td>
-            <td class="{% if household.financial_result > 0 %}positive{% else %}negative{% endif %}">{{ household.financial_result|floatformat:2 }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="8">No households participated in trading.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
       <h3>P2P Trades</h3>
       <table>
         <thead>
           <tr>
             <th>Seller ID</th>
             <th>Buyer ID</th>
-            <th>Quantity (kWh)</th>
-            <th>Price ($/kWh)</th>
-            <th>Total Value ($)</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total Revenue</th>
           </tr>
         </thead>
         <tbody>
@@ -622,9 +590,9 @@
           <tr>
             <th>Participant ID</th>
             <th>Role</th>
-            <th>Quantity (kWh)</th>
-            <th>Price ($/kWh)</th>
-            <th>Total Value ($)</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total Revenue</th>
           </tr>
         </thead>
         <tbody>
@@ -639,6 +607,40 @@
           {% empty %}
           <tr>
             <td colspan="5">No grid trades occurred.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h3>Households Summary</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Household ID</th>
+            <th>Role</th>
+            <th>Energy</th>
+            <th>Price</th>
+            <th>Total Traded</th>
+            <th>P2P Traded</th>
+            <th>Grid Traded</th>
+            <th>Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for household in game_results.households %}
+          <tr>
+            <td>{{ household.household_id }}</td>
+            <td>{{ household.role|capfirst }}</td>
+            <td>{{ household.original_energy|floatformat:2 }}</td>
+            <td>{{ household.price|floatformat:2 }}</td>
+            <td>{{ household.total_traded|floatformat:2 }}</td>
+            <td>{{ household.p2p_traded|floatformat:2 }}</td>
+            <td>{{ household.grid_traded|floatformat:2 }}</td>
+            <td class="{% if household.financial_result > 0 %}positive{% else %}negative{% endif %}">{{ household.financial_result|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">No households participated in trading.</td>
           </tr>
           {% endfor %}
         </tbody>

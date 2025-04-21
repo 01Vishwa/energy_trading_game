@@ -178,14 +178,6 @@
     <div class="login-form">
       <h1>Login to Your Account</h1>
 
-      {% if messages %}
-      <div class="messages">
-        {% for message in messages %}
-          <div class="message {{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
       <form action="{% url 'login' %}" method="post">
         {% csrf_token %}
         <div class="input-group">
@@ -216,7 +208,6 @@
             <input type="checkbox" id="remember" name="remember" style="width: auto; margin-right: 8px;">
             <label for="remember" style="margin-bottom: 0;">Remember me</label>
           </div>
-
         </div>
         <button type="submit" class="button">Login</button>
       </form>

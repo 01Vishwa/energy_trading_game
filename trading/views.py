@@ -104,41 +104,62 @@ def prepare_households_for_trading(df):
     return households
 
 def perform_trading(households):
+    """
+    Perform energy trading using a price-based double auction mechanism to approximate Nash equilibrium.
+    Sellers are sorted by price ascending, buyers by price descending, and trades are matched using two pointers.
+    """
     eligible_households = {name: data for name, data in households.items() if data['no_fault']}
     sellers = {n: d for n, d in eligible_households.items() if d['role'] == 'seller' and d['net'] > 0}
     buyers = {n: d for n, d in eligible_households.items() if d['role'] == 'buyer' and d['net'] < 0}
 
-    # Sort sellers by net energy descending (highest surplus first)
-    compare_seller = lambda a, b: a[1]['net'] > b[1]['net']
+    # Sort sellers by price ascending (lowest asking price first)
+    compare_seller = lambda a, b: a[1]['price'] < b[1]['price']
     sorted_sellers = merge_sort(list(sellers.items()), compare_seller)
     
-    # Sort buyers by net energy ascending (most negative first)
-    compare_buyer = lambda a, b: a[1]['net'] < b[1]['net']
+    # Sort buyers by price descending (highest bidding price first)
+    compare_buyer = lambda a, b: a[1]['price'] > b[1]['price']
     sorted_buyers = merge_sort(list(buyers.items()), compare_buyer)
 
     trades = []
-    # P2P Trading
-    for s_name, s_data in sorted_sellers:
-        for b_name, b_data in sorted_buyers:
-            if s_data['remaining'] > 0 and b_data['remaining'] < 0:
-                if b_data['price'] >= s_data['price']:
-                    trade_qty = min(s_data['remaining'], -b_data['remaining'])
-                    traded_price = np.round((s_data['price'] + b_data['price']) / 2, 2)
-                    s_data['traded_units'] += trade_qty
-                    s_data['p2p_traded_units'] += trade_qty
-                    s_data['total_price'] += trade_qty * traded_price
-                    s_data['remaining'] -= trade_qty
-                    b_data['traded_units'] += trade_qty
-                    b_data['p2p_traded_units'] += trade_qty
-                    b_data['total_price'] -= trade_qty * traded_price
-                    b_data['remaining'] += trade_qty
-                    trades.append({
-                        'seller': s_name,
-                        'buyer': b_name,
-                        'quantity': trade_qty,
-                        'price': traded_price,
-                        'type': 'p2p'
-                    })
+    # P2P Trading using two-pointer approach
+    i = 0
+    j = 0
+    while i < len(sorted_sellers) and j < len(sorted_buyers):
+        s_name, s_data = sorted_sellers[i]
+        b_name, b_data = sorted_buyers[j]
+        if s_data['price'] <= b_data['price'] and s_data['remaining'] > 0 and b_data['remaining'] < 0:
+            trade_qty = min(s_data['remaining'], -b_data['remaining'])
+            traded_price = np.round((s_data['price'] + b_data['price']) / 2, 2)
+            
+            # Update seller data
+            s_data['traded_units'] += trade_qty
+            s_data['p2p_traded_units'] += trade_qty
+            s_data['total_price'] += trade_qty * traded_price
+            s_data['remaining'] -= trade_qty
+            
+            # Update buyer data
+            b_data['traded_units'] += trade_qty
+            b_data['p2p_traded_units'] += trade_qty
+            b_data['total_price'] -= trade_qty * traded_price
+            b_data['remaining'] += trade_qty
+            
+            # Record the trade
+            trades.append({
+                'seller': s_name,
+                'buyer': b_name,
+                'quantity': trade_qty,
+                'price': traded_price,
+                'type': 'p2p'
+            })
+            
+            # Move pointers based on remaining energy
+            if s_data['remaining'] <= 0:
+                i += 1
+            if b_data['remaining'] >= 0:
+                j += 1
+        else:
+            # No more trades possible since seller price exceeds buyer price
+            break
 
     # Grid Trading: Remaining surplus
     for s_name, s_data in sellers.items():

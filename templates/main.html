@@ -67,23 +67,6 @@
       font-weight: bold;
     }
 
-    .navbar ul {
-      list-style: none;
-      display: flex;
-      gap: 20px;
-    }
-
-    .navbar ul li a {
-      color: white;
-      text-decoration: none;
-      font-size: 1rem;
-      transition: opacity 0.2s;
-    }
-
-    .navbar ul li a:hover {
-      opacity: 0.8;
-    }
-
     .container {
       width: 100%;
       max-width: 1600px;
@@ -638,10 +621,6 @@
         flex-direction: column;
         gap: 10px;
       }
-      .navbar ul {
-        flex-direction: column;
-        align-items: center;
-      }
     }
 
     @media (max-width: 480px) {
@@ -667,14 +646,6 @@
       <div class="header-icon">⚡</div>
       <h1>Energy Grid Trading Platform</h1>
     </div>
-    <nav class="navbar">
-      <ul>
-        <li><a href="#">Home</a></li>
-        <li><a href="#">Dashboard</a></li>
-        <li><a href="#">Analysis</a></li>
-        <li><a href="#">Report</a></li>
-      </ul>
-    </nav>
   </header>
   <div class="container">
     <div class="dashboard">
@@ -789,22 +760,22 @@
           <div class="tab-content" id="tradingTab">
             <div class="trading-options">
               <div class="trading-card">
-                <h3><i class="fas fa-upload"></i> Sell Surplus Energy</h3>
-                <p>You have <span id="sellableSurplus">0.00</span> kW of surplus energy available for trading.</p>
+                <h3><i class="fas fa-upload"></i>EQUILIBRIUM</h3>
+                <p><span id="sellableSurplus"></span>Strategically trade with neighboring households to maximize your utility in the grid energy game</p>
                 <div class="price">
-                  <i class="fas fa-coins"></i> Current Direct Trading Price: $<span id="directPrice">0.00</span>/kWh
+                  <i class="fas fa-coins"></i>Agreed trade through cooperative trading strategies<span id="directPrice"></span>
                 </div>
                 <button class="btn btn-primary" id="sellEnergyBtn" onclick="window.location.href='report.html';">
                   <i class="fas fa-dollar-sign"></i> Sell Energy
                 </button>
               </div>
               <div class="trading-card">
-                <h3><i class="fas fa-download"></i> Buy Energy</h3>
+                <h3><i class="fas fa-download"></i>OPTMIZATION</h3>
                 <p>Current market has <span id="availableEnergy">0.00</span> kW of energy available for purchase.</p>
                 <div class="price">
                   <i class="fas fa-coins"></i> Current Market Price: $<span id="marketPrice">0.00</span>/kWh
                 </div>
-                <button class="btn btn-primary" id="buyEnergyBtn">
+                <button class="btn btn-primary" id="buyEnergyBtn" onclick="window.location.href='report_adsa.html';">
                   <i class="fas fa-shopping-cart"></i> Buy Energy
                 </button>
               </div>

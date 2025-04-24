@@ -67,23 +67,6 @@
       font-weight: bold;
     }
 
-    .navbar ul {
-      list-style: none;
-      display: flex;
-      gap: 20px;
-    }
-
-    .navbar ul li a {
-      color: white;
-      text-decoration: none;
-      font-size: 1rem;
-      transition: opacity 0.2s;
-    }
-
-    .navbar ul li a:hover {
-      opacity: 0.8;
-    }
-
     .container {
       width: 100%;
       max-width: 1600px;
@@ -235,39 +218,6 @@
       background-color: white;
       color: var(--primary-color);
       visibility: visible;
-    }
-
-    /* Center View Button */
-    .center-view-container {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-top: auto;
-      padding-top: 15px;
-    }
-
-    .center-view-btn {
-      padding: 10px 20px;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 0.9rem;
-      transition: background-color 0.2s;
-      display: flex;
-      align-items: center;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .center-view-btn i {
-      margin-right: 8px;
-    }
-
-    .center-view-btn:hover {
-      background-color: #1a2732;
     }
 
     /* Main Content */
@@ -671,14 +621,10 @@
         flex-direction: column;
         gap: 10px;
       }
-      .navbar ul {
-        flex-direction: column;
-        align-items: center;
-      }
     }
 
     @media (max-width: 480px) {
-      .energy-datarin {
+      .energy-data {
         grid-template-columns: 1fr;
       }
       .trading-options {
@@ -700,14 +646,6 @@
       <div class="header-icon">⚡</div>
       <h1>Energy Grid Trading Platform</h1>
     </div>
-    <nav class="navbar">
-      <ul>
-        <li><a href="#">Home</a></li>
-        <li><a href="#">Dashboard</a></li>
-        <li><a href="#">Analysis</a></li>
-        <li><a href="#">Report</a></li>
-      </ul>
-    </nav>
   </header>
   <div class="container">
     <div class="dashboard">
@@ -735,16 +673,6 @@
           <ul class="household-list" id="householdList">
             <!-- Dynamically populated -->
           </ul>
-        </div>
-
-        <!-- Navigation Buttons Row -->
-        <div class="nav-buttons">
-          <button class="center-view-btn" id="deleteButton" onclick="deleteHousehold();">
-            <i class="fas fa-trash"></i> Delete
-          </button>
-          <button class="center-view-btn" id="nextButton" onclick="window.location.href='report.html';">
-            <i class="fas fa-arrow-right"></i> Next
-          </button>
         </div>
       </div>
 
@@ -832,22 +760,22 @@
           <div class="tab-content" id="tradingTab">
             <div class="trading-options">
               <div class="trading-card">
-                <h3><i class="fas fa-upload"></i> Sell Surplus Energy</h3>
-                <p>You have <span id="sellableSurplus">0.00</span> kW of surplus energy available for trading.</p>
+                <h3><i class="fas fa-upload"></i>EQUILIBRIUM</h3>
+                <p><span id="sellableSurplus"></span>Strategically trade with neighboring households to maximize your utility in the grid energy game</p>
                 <div class="price">
-                  <i class="fas fa-coins"></i> Current Direct Trading Price: $<span id="directPrice">0.00</span>/kWh
+                  <i class="fas fa-coins"></i>Agreed trade through cooperative trading strategies<span id="directPrice"></span>
                 </div>
-                <button class="btn btn-primary" id="sellEnergyBtn">
+                <button class="btn btn-primary" id="sellEnergyBtn" onclick="window.location.href='report.html';">
                   <i class="fas fa-dollar-sign"></i> Sell Energy
                 </button>
               </div>
               <div class="trading-card">
-                <h3><i class="fas fa-download"></i> Buy Energy</h3>
+                <h3><i class="fas fa-download"></i>OPTMIZATION</h3>
                 <p>Current market has <span id="availableEnergy">0.00</span> kW of energy available for purchase.</p>
                 <div class="price">
                   <i class="fas fa-coins"></i> Current Market Price: $<span id="marketPrice">0.00</span>/kWh
                 </div>
-                <button class="btn btn-primary" id="buyEnergyBtn">
+                <button class="btn btn-primary" id="buyEnergyBtn" onclick="window.location.href='report_adsa.html';">
                   <i class="fas fa-shopping-cart"></i> Buy Energy
                 </button>
               </div>
@@ -925,7 +853,6 @@
       const searchButton = document.getElementById('searchOkBtn');
       const resetButton = document.getElementById('resetSearchBtn');
       const householdList = document.getElementById('householdList');
-      const nextButton = document.getElementById('nextButton');
 
       // Global chart instances
       let tempHumidityChart, energyMixChart;
@@ -934,7 +861,6 @@
       // State Variables
       let currentHouseholds = [];
       let selectedHousehold = null;
-      let currentPageIndex = 0;
 
       // Update a value in the DOM with error handling
       function updateValue(id, value, decimals = 2) {
@@ -988,7 +914,6 @@
           const response = await axios.get('/search_households/', { params: { query: searchTerm } });
           currentHouseholds = response.data;
           currentHouseholds.sort((a, b) => a.localeCompare(b));
-          currentPageIndex = 0;
           renderHouseholdList(currentHouseholds);
         } catch (error) {
           console.error('Error fetching households:', error);
@@ -1243,15 +1168,6 @@
         searchInput.value = '';
         fetchHouseholds();
       });
-
-      nextButton.addEventListener('click', () => {
-        // Implement next household functionality if needed
-      });
-
-      // Delete button function
-      window.deleteHousehold = function() {
-        alert('Delete button clicked. Implement delete functionality.');
-      };
 
       // Tab switching logic
       document.querySelectorAll('.tab').forEach(tab => {

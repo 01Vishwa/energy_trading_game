@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Energy Grid Trading Platform</title>
+  <!-- Include Plotly.js for rendering the network graph -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     :root {
       --primary-color: #99BC85;
       --secondary-color: #E4EFE7;
-      --background-color: #fdfaf6;
+      --background-color: #ffffff;
       --text-color: #99BC85;
       --shadow-color: rgba(0, 0, 0, 0.1);
       --error-color: #F2CD5E;
@@ -276,7 +278,6 @@
       cursor: not-allowed;
     }
     
-    /* New styles for Action button */
     .action-button {
       background-color: var(--primary-color);
       color: white;
@@ -292,7 +293,6 @@
       background-color: var(--accent-color);
     }
     
-    /* Checkbox styling */
     .select-checkbox {
       width: 18px;
       height: 18px;
@@ -318,7 +318,6 @@
       background-color: var(--accent-color);
     }
     
-    /* Filter styles */
     .filter-container {
       display: flex;
       gap: 15px;
@@ -378,12 +377,23 @@
       background-color: #5a6268;
     }
     
-    /* Added for pagination */
     .page-info {
       margin-top: 10px;
       text-align: center;
       color: #6c757d;
       font-size: 14px;
+    }
+
+    /* Style for the network graph */
+    #network-graph {
+      width: 100%;
+      height: 600px;
+      margin-top: 20px;
+    }
+
+    /* Added rule to adjust filter-container inside panel-header */
+    .panel-header .filter-container {
+      margin-bottom: 0;
     }
   </style>
 </head>
@@ -393,14 +403,6 @@
       <div class="header-icon">⚡</div>
       <h1>Energy Grid Trading Platform</h1>
     </div>
-    <nav class="navbar">
-      <ul>
-        <li><a href="#">Home</a></li>
-        <li><a href="#">Dashboard</a></li>
-        <li><a href="#">Analysis</a></li>
-        <li><a href="#">Report</a></li>
-      </ul>
-    </nav>
   </header>
   
   <div class="stats-container">
@@ -408,7 +410,7 @@
       <div class="stat-title">
         <i>⊕</i> Total Surplus Energy
       </div>
-      <div class="stat-value">450 kWh</div>
+      <div class="stat-value" id="total-surplus">0 kWh</div>
       <div class="stat-subtitle">Available for trading</div>
     </div>
     
@@ -416,7 +418,7 @@
       <div class="stat-title">
         <i>⊖</i> Total Required Energy
       </div>
-      <div class="stat-value">320 kWh</div>
+      <div class="stat-value" id="total-required">0 kWh</div>
       <div class="stat-subtitle">Energy deficit</div>
     </div>
     
@@ -424,7 +426,7 @@
       <div class="stat-title">
         <i>⚙</i> Trading Allowed
       </div>
-      <div class="stat-value">3 out of 5</div>
+      <div class="stat-value" id="trading-allowed">0 out of 0</div>
       <div class="stat-subtitle">Active participants</div>
     </div>
     
@@ -458,30 +460,26 @@
         <div class="panel-title">
           <i>🏠</i> Grid Participants
         </div>
-      </div>
-      
-      <!-- Added Filter Controls -->
-      <div class="filter-container">
-        <div class="filter-group">
-          <span class="filter-label">Role:</span>
-          <select class="filter-select" id="role-filter">
-            <option value="all">All Roles</option>
-            <option value="producer">Producer</option>
-            <option value="consumer">Consumer</option>
-          </select>
+        <div class="filter-container">
+          <div class="filter-group">
+            <span class="filter-label">Role:</span>
+            <select class="filter-select" id="role-filter">
+              <option value="all">All</option>
+              <option value="producer">Producer</option>
+              <option value="consumer">Consumer</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Both Faults:</span>
+            <select class="filter-select" id="fault-filter">
+              <option value="all">All</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <button class="filter-button" onclick="applyFilters()">Apply</button>
+          <button class="reset-button" onclick="resetFilters()">Reset</button>
         </div>
-        
-        <div class="filter-group">
-          <span class="filter-label">Both Faults:</span>
-          <select class="filter-select" id="fault-filter">
-            <option value="all">All</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-        
-        <button class="filter-button" onclick="applyFilters()">Apply Filters</button>
-        <button class="reset-button" onclick="resetFilters()">Reset</button>
       </div>
       
       <div class="table-responsive">
@@ -526,13 +524,11 @@
           </tbody>
         </table>
         
-        <!-- Page info display -->
         <div class="page-info" id="page-info">
           Showing <span id="page-start">1</span> to <span id="page-end">5</span> of <span id="total-items">0</span> households
         </div>
         
-        <!-- Added Analyse button below the table -->
-        <button class="analyse-button" onclick="analyseSelected()">Analyse Selected</button>
+        <button class="analyse-button" onclick="analyseSelected()">Analyse</button>
       </div>
       
       <div class="pagination" id="pagination">
@@ -543,55 +539,193 @@
     </div>
   </div>
   
+  {% if game_results %}
+  <div class="trading-results">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <i>⚡</i> Trading Game Results
+        </div>
+      </div>
+
+      <h3>P2P Trades</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Seller ID</th>
+            <th>Buyer ID</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for trade in game_results.p2p_trades %}
+          <tr>
+            <td>{{ trade.seller_id }}</td>
+            <td>{{ trade.buyer_id }}</td>
+            <td>{{ trade.quantity|floatformat:2 }}</td>
+            <td>{{ trade.price|floatformat:2 }}</td>
+            <td>{{ trade.total_value|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5">No P2P trades occurred.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h3>Grid Trades</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Participant ID</th>
+            <th>Role</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for trade in game_results.grid_trades %}
+          <tr>
+            <td>{{ trade.participant_id }}</td>
+            <td>{{ trade.role|capfirst }}</td>
+            <td>{{ trade.quantity|floatformat:2 }}</td>
+            <td>{{ trade.price|floatformat:2 }}</td>
+            <td>{{ trade.total_value|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5">No grid trades occurred.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h3>Households Summary</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Household ID</th>
+            <th>Role</th>
+            <th>Energy</th>
+            <th>Price</th>
+            <th>Total Traded</th>
+            <th>P2P Traded</th>
+            <th>Grid Traded</th>
+            <th>Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for household in game_results.households %}
+          <tr>
+            <td>{{ household.household_id }}</td>
+            <td>{{ household.role|capfirst }}</td>
+            <td>{{ household.original_energy|floatformat:2 }}</td>
+            <td>{{ household.price|floatformat:2 }}</td>
+            <td>{{ household.total_traded|floatformat:2 }}</td>
+            <td>{{ household.p2p_traded|floatformat:2 }}</td>
+            <td>{{ household.grid_traded|floatformat:2 }}</td>
+            <td class="{% if household.financial_result > 0 %}positive{% else %}negative{% endif %}">{{ household.financial_result|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">No households participated in trading.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Network Graph Section -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i>📊</i> Trading Network Graph
+          </div>
+        </div>
+        <div id="network-graph">
+          {{ game_results.graph_html|safe }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
   <div class="bottom-navigation">
   </div>
 
   <script>
-    // Pagination variables
     let currentPage = 1;
     const rowsPerPage = 5;
     let totalPages = 1;
     let filteredRows = [];
     
-    // Initialize when document is loaded
     document.addEventListener('DOMContentLoaded', function() {
       initializePagination();
+      updateStatCards();
+      
+      // Add event listeners to checkboxes to update trading allowed stat
+      const checkboxes = document.querySelectorAll('.select-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateTradingAllowed);
+      });
     });
     
-    // Initialize pagination
+    function updateStatCards() {
+      // Calculate total surplus energy (sum of positive net energy)
+      let totalSurplus = 0;
+      let totalRequired = 0;
+      
+      const energyCells = document.querySelectorAll('td.positive, td.negative');
+      energyCells.forEach(cell => {
+        const energyValue = parseFloat(cell.textContent);
+        if (energyValue > 0) {
+          totalSurplus += energyValue;
+        } else if (energyValue < 0) {
+          totalRequired += Math.abs(energyValue);
+        }
+      });
+      
+      // Update the stat cards
+      document.getElementById('total-surplus').textContent = totalSurplus.toFixed(2) + ' kWh';
+      document.getElementById('total-required').textContent = totalRequired.toFixed(2) + ' kWh';
+      
+      // Initial update of trading allowed stat
+      updateTradingAllowed();
+    }
+    
+    function updateTradingAllowed() {
+      const totalRows = document.querySelectorAll('.data-row').length;
+      const selectedCheckboxes = document.querySelectorAll('input[name="select-household"]:checked').length;
+      document.getElementById('trading-allowed').textContent = selectedCheckboxes + ' out of ' + totalRows;
+    }
+    
     function initializePagination() {
-      // Get all rows that are currently visible (not filtered out)
       const allRows = document.querySelectorAll('.data-row');
       filteredRows = Array.from(allRows).filter(row => row.style.display !== 'none');
       
-      // Calculate total pages
       totalPages = Math.ceil(filteredRows.length / rowsPerPage);
       if (totalPages === 0) totalPages = 1;
       
-      // Update total count in page info
       document.getElementById('total-items').textContent = filteredRows.length;
       
-      // Reset to first page when filters change
       currentPage = 1;
       
-      // Render pagination numbers
       renderPaginationNumbers();
       
-      // Update page
       updatePage();
     }
     
-    // Render pagination number buttons
     function renderPaginationNumbers() {
       const paginationNumbers = document.getElementById('pagination-numbers');
       paginationNumbers.innerHTML = '';
       
-      // Limit number of page buttons to show
       const maxButtons = 5;
       let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
       let endPage = Math.min(totalPages, startPage + maxButtons - 1);
       
-      // Adjust start page if we're near the end
       if (endPage - startPage + 1 < maxButtons) {
         startPage = Math.max(1, endPage - maxButtons + 1);
       }
@@ -608,14 +742,11 @@
       }
     }
     
-    // Update page display
     function updatePage() {
-      // Hide all rows
       filteredRows.forEach(row => {
         row.style.display = 'none';
       });
       
-      // Show rows for current page
       const start = (currentPage - 1) * rowsPerPage;
       const end = Math.min(start + rowsPerPage, filteredRows.length);
       
@@ -623,24 +754,20 @@
         filteredRows[i].style.display = '';
       }
       
-      // Update pagination buttons
       document.getElementById('prev-btn').disabled = currentPage === 1;
       document.getElementById('next-btn').disabled = currentPage === totalPages;
       
-      // Update active button
       const paginationNumbers = document.getElementById('pagination-numbers').children;
       for (let i = 0; i < paginationNumbers.length; i++) {
         paginationNumbers[i].classList.toggle('active', parseInt(paginationNumbers[i].textContent) === currentPage);
       }
       
-      // Update page info
       document.getElementById('page-start').textContent = start + 1;
       document.getElementById('page-end').textContent = end;
       
       renderPaginationNumbers();
     }
     
-    // Go to previous page
     function prevPage() {
       if (currentPage > 1) {
         currentPage--;
@@ -648,7 +775,6 @@
       }
     }
     
-    // Go to next page
     function nextPage() {
       if (currentPage < totalPages) {
         currentPage++;
@@ -656,13 +782,10 @@
       }
     }
     
-    // Function to view details of a specific household
     function viewDetails(householdId) {
       alert("Viewing details for household: " + householdId);
-      // This would typically navigate to a detailed view or open a modal
     }
     
-    // Function to analyse selected households
     function analyseSelected() {
       const selectedCheckboxes = document.querySelectorAll('input[name="select-household"]:checked');
       const selectedIds = Array.from(selectedCheckboxes).map(checkbox => checkbox.value);
@@ -672,11 +795,49 @@
         return;
       }
       
-      alert("Analysing households: " + selectedIds.join(", "));
-      // This would typically trigger an analysis process or navigate to an analysis page
+      // Create a form dynamically
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/energy/start-trading-game/";
+      
+      // Add CSRF token
+      const csrfToken = getCookie('csrftoken');
+      const csrfInput = document.createElement("input");
+      csrfInput.type = "hidden";
+      csrfInput.name = "csrfmiddlewaretoken";
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+      
+      // Add household IDs to form
+      selectedIds.forEach((id, index) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = `household_ids[${index}]`;
+        input.value = id;
+        form.appendChild(input);
+      });
+      
+      // Add form to document and submit
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
     }
     
-    // Function to apply filters
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
     function applyFilters() {
       const roleFilter = document.getElementById('role-filter').value;
       const faultFilter = document.getElementById('fault-filter').value;
@@ -697,11 +858,10 @@
         }
       });
       
-      // Reinitialize pagination after applying filters
       initializePagination();
+      updateStatCards(); // Recalculate stats after filtering
     }
     
-    // Function to reset filters
     function resetFilters() {
       document.getElementById('role-filter').value = 'all';
       document.getElementById('fault-filter').value = 'all';
@@ -711,8 +871,8 @@
         row.style.display = '';
       });
       
-      // Reinitialize pagination after resetting filters
       initializePagination();
+      updateStatCards(); // Recalculate stats after resetting filters
     }
   </script>
 </body>
